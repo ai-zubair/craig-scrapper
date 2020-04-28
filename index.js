@@ -19,13 +19,13 @@ async function main(){
 
   /* 3: Use the browser tab to navigate to a URL */
   const jobListings = await getJobListings(page,"https://sfbay.craigslist.org/d/software-qa-dba-etc/search/sof");
-  const descriptiveListings = await getLisitingDescription(page,jobListings);
+  await getLisitingDescription(page,jobListings);
 
   /*4: Close the browser when tasks done */
   browser.close();
 
 
-  // fs.writeFileSync("results.json",JSON.stringify(results,undefined,2));
+  fs.writeFileSync("results.json",JSON.stringify(jobListings,undefined,2));
 }
 
 async function getJobListings(browserPage, listingURL){
@@ -48,12 +48,25 @@ async function getJobListings(browserPage, listingURL){
     }
   }).get();
 
-  return jobListings
+  return jobListings;
 
 }
 
 async function getLisitingDescription(browserPage, jobListings){
   for (let i = 0; i < jobListings.length; i++) {
     await browserPage.goto(jobListings[i].descriptionURL);
+    const descriptionPageHTML = await browserPage.content();
+    const $ =  cheerio.load(descriptionPageHTML); 
+    jobListings[i].jobDescription = $("#postingbody").text() || "Description not available!";
+    jobListings[i].compensation = $("section.body section.userbody .mapAndAttrs p.attrgroup span:nth-child(1) b").text() || "Not available";
+    await sleep(1000)//wait 1s before next request
   }
+}
+
+function sleep(timeInMilliseconds){
+  return new Promise((resolve)=>{
+    setTimeout(() => {
+      resolve();
+    }, timeInMilliseconds);
+  })
 }
